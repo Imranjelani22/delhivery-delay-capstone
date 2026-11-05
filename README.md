@@ -1,12 +1,14 @@
 # Delhivery Last-Mile Delay Intelligence Pipeline
 
-## Project Overview
+## 1. Project Overview
 
-This project develops a data-driven shipment delay intelligence pipeline using synthetic shipment data. The objective is to analyse delivery performance, identify factors associated with shipment delays, and build machine learning models to predict delivery time.
+This project develops a data-driven shipment delay intelligence pipeline using synthetic shipment data.
+
+The objective is to analyse delivery performance, identify factors associated with shipment delays, build machine learning models, segment delivery hubs based on operational performance, and generate actionable recommendations for new shipments.
 
 The project is developed as part of the IIT Roorkee AI/ML Capstone Project.
 
-## Repository Structure
+## 2. Repository Structure
 
 ```text
 delhivery-delay-capstone/
@@ -20,6 +22,12 @@ delhivery-delay-capstone/
 ├── src/
 │   └── shipment_prep.py
 │
+├── models/
+│   ├── delay_model.pkl
+│   ├── delay_threshold.csv
+│   ├── feature_order.csv
+│   └── impute_values.csv
+│
 ├── outputs/
 │   ├── part_a_checks.csv
 │   ├── part_a_correlations.csv
@@ -28,16 +36,34 @@ delhivery-delay-capstone/
 │   ├── part_b_cv.csv
 │   ├── part_b_gb_learning_rate.csv
 │   ├── part_b_metrics.csv
-│   └── part_b_tree_depth.csv
+│   ├── part_b_tree_depth.csv
+│   ├── part_c_feature_scores.csv
+│   ├── part_c_final_config.csv
+│   ├── part_c_final_test.csv
+│   ├── part_c_models.csv
+│   ├── part_c_selectk.csv
+│   ├── part_c_thresholds.csv
+│   ├── part_c_tuning.csv
+│   ├── hub_profile.csv
+│   ├── part_d_separation.csv
+│   ├── hub_segments.csv
+│   ├── segment_profile.csv
+│   ├── tier_vs_segment_mismatch.csv
+│   ├── part_d_reload_check.csv
+│   └── new_shipment_actions.csv
 │
 ├── generate_data.py
 ├── part_a_clean_eda.py
 ├── part_b_regression.py
+├── part_c_classification.py
+├── part_d_segments.py
+├── package_model.py
+├── predict_delay.py
 ├── requirements.txt
 └── README.md
 ```
 
-## Part A – Data Preparation and Exploratory Data Analysis
+## 3. Part A – Data Preparation and Exploratory Data Analysis
 
 ### Data Cleaning
 
@@ -61,59 +87,42 @@ delhivery-delay-capstone/
 - Overall delay rate: 23.17%.
 - No missing values remained across the required features and target.
 
-### Delay by Service Type
+### Key Findings
 
 Express shipments recorded the highest delay rate at 48.97%, followed by Standard at 20.56% and Economy at 8.57%.
 
-### Delay by Hub Tier
+Delay rates by hub tier:
 
-- Tier 1: 4.00% delay rate.
-- Tier 2: 21.50% delay rate.
-- Tier 3: 44.00% delay rate.
+- Tier 1: 4.00%.
+- Tier 2: 21.50%.
+- Tier 3: 44.00%.
 
-### Delay by Distance
-
-The delay rate increased with distance:
+The delay rate increased with shipment distance:
 
 - 0–200 km: 2.19%.
 - 201–400 km: 13.68%.
 - 401–600 km: 43.64%.
 - 601+ km: 85.23%.
 
-### Correlation Findings
+## 4. Part B – Regression Modelling
 
-The strongest correlations with delivery hours were:
-
-- Promised hours: 0.8372.
-- Distance: 0.4013.
-- Number of stops: 0.3247.
-
-### Declared Value Transformation
-
-The mean declared value was INR 1,533.05, while the median was INR 1,121.50. After natural logarithm transformation, the mean and median were 7.0277 and 7.0224 respectively. The log transformation reduces the influence of highly skewed values.
-
-## Part B – Regression Modelling
+The objective was to predict actual delivery time in hours.
 
 ### Dataset Split
-
-The modelling dataset was divided into three sets:
 
 - Training: 840 rows (70%).
 - Validation: 180 rows (15%).
 - Testing: 180 rows (15%).
-
-Random state: 42.
+- Random state: 42.
 
 ### Regression Models Evaluated
-
-Four regression models were evaluated:
 
 1. Linear Regression.
 2. Decision Tree Regressor.
 3. Random Forest Regressor.
 4. Gradient Boosting Regressor.
 
-### Validation Model Performance
+### Validation Performance
 
 | Model | Validation RMSE | Validation R² |
 |---|---:|---:|
@@ -122,30 +131,7 @@ Four regression models were evaluated:
 | Random Forest | 5.5095 | 0.9128 |
 | Gradient Boosting | 4.9165 | 0.9306 |
 
-### Decision Tree Depth Experiment
-
-Maximum depths were tested to evaluate model complexity and overfitting.
-
-- Best validation RMSE: 6.2796 hours.
-- Best maximum depth: 6.
-- Unlimited depth resulted in overfitting, with training RMSE of 0.0000 and validation RMSE of 7.8368.
-
-### Gradient Boosting Learning Rate
-
-Learning rates tested: 0.01, 0.1 and 1.0.
-
-The best tested learning rate was 0.1, with validation RMSE of 4.9165 hours and validation R² of 0.9306.
-
-### Cross-Validation
-
-Five-fold cross-validation results:
-
-- Linear Regression mean R²: 0.9261 (standard deviation 0.0048).
-- Gradient Boosting mean R²: 0.9353 (standard deviation 0.0045).
-
-### Final Model Selection
-
-Linear Regression was selected based on the lowest validation RMSE among the four candidate models.
+Linear Regression was selected based on the lowest validation RMSE.
 
 ### Final Test Performance
 
@@ -155,59 +141,246 @@ Linear Regression was selected based on the lowest validation RMSE among the fou
 - Test RMSE: 4.5235 hours.
 - Test R²: 0.9493.
 
-## Technologies and Libraries
+Additional experiments included decision tree depth, Gradient Boosting learning rates, and five-fold cross-validation.
+
+## 5. Part C – Shipment Delay Classification
+
+The objective was to classify shipments as delayed or not delayed.
+
+### Dataset Split
+
+- Training: 840 rows.
+- Validation: 180 rows.
+- Testing: 180 rows.
+
+### Classification Models Evaluated
+
+1. Blind baseline.
+2. Logistic Regression.
+3. Decision Tree Classifier.
+4. Random Forest Classifier.
+
+Random Forest was selected for the final classification pipeline.
+
+### Feature Selection and Hyperparameter Tuning
+
+- SelectKBest feature selection was evaluated.
+- Seven features were selected for the final configuration.
+- GridSearchCV and RandomizedSearchCV were compared.
+- Random Forest was configured with 100 estimators.
+- Maximum depth: Unlimited.
+- Minimum samples per leaf: 1.
+
+### Threshold Selection
+
+A probability threshold of 0.5 was selected for final classification.
+
+The threshold was evaluated against alternative values to understand the trade-off between precision and recall.
+
+### Final Test Performance
+
+| Metric | Result |
+|---|---:|
+| Accuracy | 86.67% |
+| Precision | 68.89% |
+| Recall | 75.61% |
+| F1-score | 72.09% |
+
+Confusion matrix:
+
+- True Negatives: 125.
+- False Positives: 14.
+- False Negatives: 10.
+- True Positives: 31.
+
+## 6. Part D – Hub Segmentation
+
+The objective was to group delivery hubs based on their operational performance and identify hubs requiring management attention.
+
+### Hub Profiling
+
+- Total hubs analysed: 24.
+- Clustering algorithms: K-Means.
+- Number of clusters evaluated: 2, 3, 4 and 5.
+- Final segmentation: Three operational segments.
+
+### Final Hub Segments
+
+| Segment | Hubs | Average Delivery Hours | Delay Rate |
+|---|---:|---:|---:|
+| Standard | 7 | 47.24 | 2.57% |
+| Watch | 8 | 56.81 | 15.50% |
+| Escalate | 9 | 64.65 | 46.00% |
+
+### Segment Interpretation
+
+**Standard**
+- Relatively strong delivery performance.
+- Low delay rate.
+- Continue routine operational monitoring.
+
+**Watch**
+- Moderate delivery delays.
+- Requires regular performance monitoring.
+- Identify operational bottlenecks.
+
+**Escalate**
+- Highest average delivery time.
+- Highest delay rate.
+- Requires management attention and corrective action.
+
+### Hub Tier versus Segment Analysis
+
+The analysis also identified mismatches between existing hub tiers and their performance-based segments.
+
+Four mismatches were identified for further operational review.
+
+## 7. Model Packaging and Validation
+
+The final Random Forest classification model was packaged for reuse.
+
+### Saved Model Artefacts
+
+- delay_model.pkl
+- delay_threshold.csv
+- feature_order.csv
+- impute_values.csv
+
+### Model Configuration
+
+- Selected features: 7.
+- Random Forest estimators: 100.
+- Maximum depth: Unlimited.
+- Minimum samples per leaf: 1.
+- Alert threshold: 0.5.
+
+### Model Reload Validation
+
+The saved model was reloaded and tested against the same test data.
+
+- Test rows scored: 180.
+- Maximum absolute probability difference: 0.000000000000.
+- Reload validation: Passed.
+
+This confirms that the saved model reproduces the original prediction probabilities.
+
+## 8. New Shipment Prediction and Operational Recommendations
+
+The final prediction script was used to score 48 new shipments.
+
+### Prediction Results
+
+| Metric | Result |
+|---|---:|
+| New shipments scored | 48 |
+| Alert threshold | 0.50 |
+| Flagged shipments | 8 |
+| Hub-manager escalations | 6 |
+| Proactive customer calls | 2 |
+| No action | 40 |
+
+### Operational Action Rules
+
+- Flagged shipment belonging to an Escalate segment: Escalate to hub manager.
+- Other flagged shipments: Proactive customer call.
+- Non-flagged shipments: No action.
+
+The final output is saved as:
+
+`outputs/new_shipment_actions.csv`
+
+This output provides shipment-level predictions and recommended operational actions.
+
+## 9. Technologies and Libraries
 
 - Python
 - Pandas
 - NumPy
 - Scikit-learn
 - Joblib
+- Matplotlib
 - GitHub
 - Google Colab
 
-## Installation and Execution
+## 10. Installation and Execution
 
-Clone the repository:
+### Clone the Repository
 
 ```bash
 git clone https://github.com/Imranjelani22/delhivery-delay-capstone.git
+
 cd delhivery-delay-capstone
 ```
 
-Install dependencies:
+### Install Dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
-Generate the synthetic shipment data:
+### Generate Synthetic Data
 
 ```bash
 python generate_data.py
 ```
 
-Run Part A:
+### Run Part A – Data Preparation and EDA
 
 ```bash
 python part_a_clean_eda.py
 ```
 
-Run Part B:
+### Run Part B – Regression Modelling
 
 ```bash
 python part_b_regression.py
 ```
 
-## Project Status
+### Run Part C – Classification
+
+```bash
+python part_c_classification.py
+```
+
+### Run Part D – Hub Segmentation
+
+```bash
+python part_d_segments.py
+```
+
+### Package and Validate the Model
+
+```bash
+python package_model.py
+```
+
+### Generate New Shipment Predictions
+
+```bash
+python predict_delay.py
+```
+
+**Execution note:** Run the scripts in the sequence above. The prediction script requires the saved model artefacts and the Part D hub segmentation outputs.
+
+## 11. Project Status
 
 - Part A – Data Preparation and Exploratory Data Analysis: Completed.
 - Part B – Regression Modelling: Completed.
-- Part C – Classification: Pending.
-- Part D – Shipment Segmentation: Pending.
-- Model Packaging and Prediction: Pending.
+- Part C – Shipment Delay Classification: Completed.
+- Part D – Hub Segmentation: Completed.
+- Model Packaging and Reload Validation: Completed.
+- New Shipment Prediction and Operational Recommendations: Completed.
+
+## 12. Conclusion
+
+The project demonstrates an end-to-end shipment delay intelligence pipeline covering data preparation, exploratory analysis, regression, classification, hub segmentation, model packaging, and shipment-level prediction.
+
+The final pipeline provides both predictive insights and practical operational recommendations to help identify delayed shipments and improve delivery performance.
 
 ## Author
 
 Imran Jilani
 
 GitHub: https://github.com/Imranjelani22
+
+IIT Roorkee AI/ML Capstone Project
